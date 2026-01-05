@@ -50,7 +50,7 @@ public class PetController {
         view.getCboSpecies().addItem("Mèo");
         view.getCboSpecies().addItem("Khác");
 
-        // Load tình trạng sức khỏe (Nếu chưa có trong Properties)
+        // Load tình trạng sức khỏe
         view.getCboHealth().removeAllItems();
         view.getCboHealth().addItem("Bình thường");
         view.getCboHealth().addItem("Đang ốm");
@@ -196,7 +196,7 @@ public class PetController {
             p.setWeight(Double.parseDouble(view.getTxtWeight().getText()));
             p.setHealthStatus(view.getCboHealth().getSelectedItem().toString());
 
-            // Lấy ID chủ từ ComboBox "1 - Nguyễn Văn A"
+            // Lấy ID chủ
             if (view.getCboOwner().getSelectedItem() != null) {
                 String ownerString = view.getCboOwner().getSelectedItem().toString();
                 p.setCustomerId(Integer.parseInt(ownerString.split(" - ")[0]));
@@ -211,8 +211,6 @@ public class PetController {
             return null;
         }
     }
-
-    // Hàm phụ trợ để chọn ComboBox
     private void setComboBoxByPrefix(JComboBox cbo, String prefix) {
         for (int i = 0; i < cbo.getItemCount(); i++) {
             String item = cbo.getItemAt(i).toString();

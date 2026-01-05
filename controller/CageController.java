@@ -79,7 +79,6 @@ public class CageController {
             }
             CageDTO c = getCageFromForm();
             if (c != null) {
-                // Lấy ID từ dòng đang chọn
                 int id = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
                 c.setCageId(id);
                 JOptionPane.showMessageDialog(view.getMainPanel(), bus.updateCage(c));

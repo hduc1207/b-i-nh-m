@@ -39,7 +39,6 @@ public class BookingDTO {
         this.totalPrice = totalPrice;
     }
 
-
     public String getPetName() {
         return petName;
     }

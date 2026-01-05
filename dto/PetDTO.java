@@ -12,8 +12,6 @@ public class PetDTO {
     private int customerId;
 
     public PetDTO() {}
-
-    // Constructor đầy đủ
     public PetDTO(int petId, String petName, String species, String breed, double weight, String healthStatus, int customerId) {
         this.petId = petId;
         this.petName = petName;

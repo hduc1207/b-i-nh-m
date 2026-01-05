@@ -174,26 +174,32 @@ public class BookingDAO {
     }
     public List<BookingDTO> getRevenueByDate(java.sql.Timestamp from, java.sql.Timestamp to) {
         List<BookingDTO> list = new ArrayList<>();
-        // Lọc theo CheckInDate và chỉ lấy đơn 'Paid'
         String sql = "SELECT * FROM Bookings WHERE CheckInDate BETWEEN ? AND ? AND PaymentStatus = 'Paid'";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setTimestamp(1, from);
             ps.setTimestamp(2, to);
-            ResultSet rs = ps.executeQuery();
 
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 BookingDTO b = new BookingDTO();
                 b.setBookingId(rs.getInt("BookingID"));
                 b.setCheckInDate(rs.getTimestamp("CheckInDate"));
                 b.setTotalPrice(rs.getDouble("TotalPrice"));
                 b.setPaymentStatus(rs.getString("PaymentStatus"));
-                // Set các trường chuỗi rỗng để tránh lỗi null khi hiển thị
-                b.setCustomerName(""); b.setPetName(""); b.setCageName(""); b.setStatus("");
+                b.setCustomerName("");
+                b.setPetName("");
+                b.setCageName("");
+                b.setStatus("");
+
                 list.add(b);
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return list;
     }
+
 }

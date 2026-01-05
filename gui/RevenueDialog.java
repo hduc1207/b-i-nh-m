@@ -11,11 +11,11 @@ import java.util.List;
 
 public class RevenueDialog extends JDialog {
     private JPanel contentPane;
-    private JButton btnThongKe; // Tên biến nút trong form
-    private JTable tblKetQua;   // Tên biến bảng trong form
-    private JLabel lblTongTien; // Tên biến label trong form
-    private JPanel pnlFromDate; // Panel rỗng 1
-    private JPanel pnlToDate;   // Panel rỗng 2
+    private JButton btnThongKe;
+    private JTable tblKetQua;
+    private JLabel lblTongTien;
+    private JPanel pnlFromDate;
+    private JPanel pnlToDate;
 
     private JDateChooser dateChooserFrom;
     private JDateChooser dateChooserTo;
@@ -27,7 +27,7 @@ public class RevenueDialog extends JDialog {
         setSize(900, 600);
         setLocationRelativeTo(parent);
 
-        setupCalendars(); // Hàm tự viết để nhúng lịch
+        setupCalendars();
         tableModel = new DefaultTableModel(new Object[]{"ID", "Check-in", "Trạng thái", "Tổng tiền"}, 0);
         tblKetQua.setModel(tableModel);
     }
@@ -60,7 +60,7 @@ public class RevenueDialog extends JDialog {
                     b.getPaymentStatus(),
                     String.format("%,.0f VNĐ", b.getTotalPrice())
             });
-            // Chỉ cộng tiền nếu đã thanh toán (Paid)
+            // Chỉ cộng tiền nếu đã thanh toán
             if ("Paid".equalsIgnoreCase(b.getPaymentStatus())) {
                 total += b.getTotalPrice();
             }
@@ -73,5 +73,5 @@ public class RevenueDialog extends JDialog {
     }
 
     public void showMessage(String msg) { JOptionPane.showMessageDialog(this, msg); }
-    private void createUIComponents() { /* Để trống */ }
+    private void createUIComponents() { }
 }

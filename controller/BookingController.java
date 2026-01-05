@@ -10,12 +10,10 @@ import com.pethotel.dto.CageDTO;
 import com.pethotel.dto.BookingDTO;
 import com.pethotel.gui.ServiceDialog;
 import com.pethotel.gui.quanlybooking;
-import com.pethotel.gui.RevenueDialog; // Import Dialog Thống kê
+import com.pethotel.gui.RevenueDialog;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.ActionEvent;      // Đã thêm import
-import java.awt.event.ActionListener;   // Đã thêm import
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.Timestamp;
@@ -31,8 +29,6 @@ public class BookingController {
     private CustomerBUS customerBUS;
     private PetBUS petBUS;
     private CageBUS cageBUS;
-
-    // Khai báo Dialog Thống kê mới
     private RevenueDialog revenueDialog;
 
     public BookingController(quanlybooking view) {
@@ -55,42 +51,34 @@ public class BookingController {
     }
 
     private void loadComboBoxData() {
-        // 1. Load Trạng thái Quy trình
         view.getCboStatus().removeAllItems();
         String[] statuses = {"Pending", "Confirmed", "Checked-in", "Checked-out", "Cancelled"};
         for (String s : statuses) view.getCboStatus().addItem(s);
 
-        //Load Trạng thái Thanh toán
         view.getCboPaymentStatus().removeAllItems();
         String[] payments = {"Pending", "Paid", "Refunded"};
         for (String p : payments) view.getCboPaymentStatus().addItem(p);
 
-        // 2. Load Customer
         view.getCboUserID().removeAllItems();
         List<CustomerDTO> customers = customerBUS.getAllCustomers();
-        for (CustomerDTO c : customers) {
-            view.getCboUserID().addItem(c.getCustomerId() + " - " + c.getFullName());
-        }
+        for (CustomerDTO c : customers) view.getCboUserID().addItem(c.getCustomerId() + " - " + c.getFullName());
 
-        // 3. Load Pet
         view.getCboPetID().removeAllItems();
         List<PetDTO> pets = petBUS.getAllPets();
-        for (PetDTO p : pets) {
-            view.getCboPetID().addItem(p.getPetId() + " - " + p.getPetName());
-        }
+        for (PetDTO p : pets) view.getCboPetID().addItem(p.getPetId() + " - " + p.getPetName());
 
-        // 4. Load Cage
         view.getCboCageID().removeAllItems();
-        List<CageDTO> cages = cageBUS.getAvailableCages();
+        List<CageDTO> cages = cageBUS.getAllCages();
+
         for (CageDTO c : cages) {
-            view.getCboCageID().addItem(c.getCageId() + " - " + c.getCageName() + " (" + c.getType() + ")");
+            view.getCboCageID().addItem(c.getCageId() + " - " + c.getCageName() + " (" + c.getStatus() + ")");
         }
     }
 
     private void loadDataToTable() {
         tableModel.setRowCount(0);
         List<BookingDTO> list = bus.getAllBookings();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm");
 
         for (BookingDTO b : list) {
             Object[] row = {
@@ -101,7 +89,7 @@ public class BookingController {
                     b.getCheckInDate() != null ? sdf.format(b.getCheckInDate()) : "",
                     b.getCheckOutDate() != null ? sdf.format(b.getCheckOutDate()) : "",
                     b.getStatus(),
-                    b.getTotalPrice(),
+                    String.format("%,.0f", b.getTotalPrice()),
                     b.getPaymentStatus()
             };
             tableModel.addRow(row);
@@ -109,153 +97,123 @@ public class BookingController {
     }
 
     private void initEventHandlers() {
-        // --- CÁC NÚT CRUD CŨ (GIỮ NGUYÊN) ---
-        view.getBtnAdd().addActionListener(e -> {
-            BookingDTO dto = getBookingFromForm();
-            if (dto != null) {
-                String result = bus.addBooking(dto);
-                JOptionPane.showMessageDialog(view.getMainPanel(), result);
-                if (result.contains("thành công")) loadDataToTable();
-            }
-        });
-
-        view.getBtnEdit().addActionListener(e -> {
-            int selectedRow = view.getTable1().getSelectedRow();
-            if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(view.getMainPanel(), "Vui lòng chọn dòng để sửa!");
-                return;
-            }
-            BookingDTO dto = getBookingFromForm();
-            if (dto != null) {
-                int id = Integer.parseInt(tableModel.getValueAt(selectedRow, 0).toString());
-                dto.setBookingId(id);
-                String result = bus.updateBooking(dto);
-                JOptionPane.showMessageDialog(view.getMainPanel(), result);
-                loadDataToTable();
-            }
-        });
-
-        view.getBtnDelete().addActionListener(e -> {
-            int selectedRow = view.getTable1().getSelectedRow();
-            if (selectedRow != -1) {
-                int id = Integer.parseInt(tableModel.getValueAt(selectedRow, 0).toString());
-                if (JOptionPane.showConfirmDialog(view.getMainPanel(), "Bạn có chắc muốn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                    String result = bus.deleteBooking(id);
-                    JOptionPane.showMessageDialog(view.getMainPanel(), result);
-                    loadDataToTable();
-                }
-            }
-        });
-
-        // --- SỰ KIỆN CLICK BẢNG ---
+        // --- 2. CLICK BẢNG  ---
         view.getTable1().addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int row = view.getTable1().getSelectedRow();
                 if (row >= 0) {
-                    setSelectedComboBoxItem(view.getCboUserID(), tableModel.getValueAt(row, 1).toString());
-                    setSelectedComboBoxItem(view.getCboPetID(), tableModel.getValueAt(row, 2).toString());
-                    setSelectedComboBoxItem(view.getCboCageID(), tableModel.getValueAt(row, 3).toString());
+                    try {
+                        setSelectedComboBoxItem(view.getCboUserID(), tableModel.getValueAt(row, 1).toString());
+                        setSelectedComboBoxItem(view.getCboPetID(), tableModel.getValueAt(row, 2).toString());
+                        setSelectedComboBoxItem(view.getCboCageID(), tableModel.getValueAt(row, 3).toString());
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+                        String inStr = tableModel.getValueAt(row, 4).toString();
+                        if (!inStr.isEmpty()) view.getPlnCheckinDate().setDate(sdf.parse(inStr));
+                        String outStr = tableModel.getValueAt(row, 5).toString();
+                        if (!outStr.isEmpty()) view.getPlnCheckOutDate().setDate(sdf.parse(outStr));
+                        view.getCboStatus().setSelectedItem(tableModel.getValueAt(row, 6).toString());
+                        String priceStr = tableModel.getValueAt(row, 7).toString().replace(",", "").replace(".", "");
+                        view.getTxtTotalPrice().setText(priceStr);
 
-                    view.getTxtCheckinDate().setText(tableModel.getValueAt(row, 4).toString());
-                    view.getTxtCheckOutDate().setText(tableModel.getValueAt(row, 5).toString());
-                    view.getCboStatus().setSelectedItem(tableModel.getValueAt(row, 6).toString());
-                    view.getTxtTotalPrice().setText(tableModel.getValueAt(row, 7).toString());
-
-                    if (tableModel.getValueAt(row, 8) != null) {
-                        view.getCboPaymentStatus().setSelectedItem(tableModel.getValueAt(row, 8).toString());
+                        if (tableModel.getValueAt(row, 8) != null) {
+                            view.getCboPaymentStatus().setSelectedItem(tableModel.getValueAt(row, 8).toString());
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
                 }
             }
         });
 
-        // --- SỰ KIỆN TỰ ĐỘNG TÍNH TIỀN ---
+        // --- 3. TỰ ĐỘNG TÍNH TIỀN ---
         view.getCboCageID().addActionListener(e -> calculateTotalPrice());
+        view.getPlnCheckinDate().addPropertyChangeListener("date", evt -> calculateTotalPrice());
+        view.getPlnCheckOutDate().addPropertyChangeListener("date", evt -> calculateTotalPrice());
 
-        view.getTxtCheckOutDate().addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                calculateTotalPrice();
+        view.getBtnAdd().addActionListener(e -> {
+            String selectedCage = view.getCboCageID().getSelectedItem().toString();
+            if (selectedCage.contains("Occupied") || selectedCage.contains("Đang ở")) {
+                JOptionPane.showMessageDialog(view.getMainPanel(),
+                        "Chuồng này đang có khách! Vui lòng chọn chuồng khác.",
+                        "Cảnh báo",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            BookingDTO dto = getBookingFromForm();
+            if (dto != null) {
+                String result = bus.addBooking(dto);
+                JOptionPane.showMessageDialog(view.getMainPanel(), result);
+                loadDataToTable();
+                loadComboBoxData();
+            }
+        });
+        view.getBtnEdit().addActionListener(e -> {
+            int row = view.getTable1().getSelectedRow();
+            if (row == -1) {
+                JOptionPane.showMessageDialog(view.getMainPanel(), "Chọn dòng để sửa!");
+                return;
+            }
+
+            // Lấy ID chuồng hiện tại đang chọn trên form
+            String selectedCageStr = view.getCboCageID().getSelectedItem().toString();
+            int selectedCageId = Integer.parseInt(selectedCageStr.split(" - ")[0]);
+            BookingDTO dto = getBookingFromForm();
+            if (dto != null) {
+                dto.setBookingId(Integer.parseInt(tableModel.getValueAt(row, 0).toString()));
+                String result = bus.updateBooking(dto);
+                JOptionPane.showMessageDialog(view.getMainPanel(), result);
+                loadDataToTable();
+                loadComboBoxData();
             }
         });
 
-        view.getTxtCheckinDate().addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                calculateTotalPrice();
+        view.getBtnDelete().addActionListener(e -> {
+            int row = view.getTable1().getSelectedRow();
+            if (row != -1 && JOptionPane.showConfirmDialog(view.getMainPanel(), "Bạn chắc chắn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                int id = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
+                String result = bus.deleteBooking(id);
+                JOptionPane.showMessageDialog(view.getMainPanel(), result);
+                loadDataToTable();
             }
         });
 
-        // Nút thoát và Menu
-        view.getBtnExit().addActionListener(e -> System.exit(0));
-        com.pethotel.utils.NavigationHelper.attachMenuEvents(
-                null,
-                view.getBtnMenuPet(),
-                view.getBtnMenuCage(),
-                view.getBtnMenuService(),
-                view.getBtnMenuCustomer(),
-                view.getBtnMenuAccount(),
-                view.getMainPanel()
-        );
-
-        // Xử lý khi bấm nút "Chọn dịch vụ"
         view.getBtnServiceAdd().addActionListener(e -> {
             int row = view.getTable1().getSelectedRow();
             if (row == -1) {
-                JOptionPane.showMessageDialog(view.getMainPanel(), "Vui lòng chọn đơn đặt phòng trước!");
+                JOptionPane.showMessageDialog(view.getMainPanel(), "Vui lòng chọn đơn đặt phòng!");
                 return;
             }
-            int bookingId = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
-            ServiceDialog dialog = new ServiceDialog(view, bookingId, () -> {
+            new ServiceDialog(view, Integer.parseInt(tableModel.getValueAt(row, 0).toString()), () -> {
                 loadDataToTable();
                 view.getTable1().setRowSelectionInterval(row, row);
-                view.getTxtTotalPrice().setText(tableModel.getValueAt(row, 7).toString());
-            });
-            dialog.setVisible(true);
+            }).setVisible(true);
         });
 
-        // ======================================================
-        // === MỚI: SỰ KIỆN NÚT btnStat (THỐNG KÊ DOANH THU) ===
-        // ======================================================
-        // Kiểm tra xem nút có tồn tại không (để tránh lỗi nếu chưa tạo bên View)
-        // Bạn cần đảm bảo đã tạo getter getBtnStat() bên quanlybooking.java
+        // Xử lý nút thống kê
         try {
             if (view.getBtnThongKe() != null) {
-                view.getBtnThongKe().addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        showRevenueDialog();
-                    }
-                });
+                view.getBtnThongKe().addActionListener(e -> showRevenueDialog());
             }
-        } catch (Exception ex) {
-            System.err.println("Chưa tạo nút btnStat hoặc chưa có getter getBtnStat() bên View: " + ex.getMessage());
-        }
-    }
+        } catch (Exception ex) {}
 
-    // ======================================================
-    // === CÁC HÀM MỚI CHO THỐNG KÊ (Copy vào cuối Class) ===
-    // ======================================================
+        view.getBtnExit().addActionListener(e -> System.exit(0));
+        com.pethotel.utils.NavigationHelper.attachMenuEvents(null, view.getBtnMenuPet(), view.getBtnMenuCage(), view.getBtnMenuService(), view.getBtnMenuCustomer(), view.getBtnMenuAccount(), view.getMainPanel());
+    }
 
     private void showRevenueDialog() {
         JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(view.getMainPanel());
         revenueDialog = new RevenueDialog(parent);
-
-        // Gắn sự kiện cho nút "Thống Kê" BÊN TRONG Dialog
-        revenueDialog.addBtnThongKeListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleRevenueLogic();
-            }
-        });
-
+        revenueDialog.addBtnThongKeListener(e -> handleRevenueLogic());
         revenueDialog.setVisible(true);
     }
 
     private void handleRevenueLogic() {
+        // 1. Lấy ngày từ Dialog
         Date uFrom = revenueDialog.getFromDate();
         Date uTo = revenueDialog.getToDate();
 
+        // 2. Kiểm tra dữ liệu đầu vào
         if (uFrom == null || uTo == null) {
             revenueDialog.showMessage("Vui lòng chọn đầy đủ ngày tháng!");
             return;
@@ -265,66 +223,42 @@ public class BookingController {
             return;
         }
 
-        // Chuyển đổi Date -> Timestamp (00:00:00 đến 23:59:59)
+        // 3. Chuyển đổi Date -> Timestamp
         Calendar calFrom = Calendar.getInstance();
         calFrom.setTime(uFrom);
         calFrom.set(Calendar.HOUR_OF_DAY, 0); calFrom.set(Calendar.MINUTE, 0);
         calFrom.set(Calendar.SECOND, 0); calFrom.set(Calendar.MILLISECOND, 0);
-        Timestamp tsFrom = new Timestamp(calFrom.getTimeInMillis());
 
         Calendar calTo = Calendar.getInstance();
         calTo.setTime(uTo);
         calTo.set(Calendar.HOUR_OF_DAY, 23); calTo.set(Calendar.MINUTE, 59);
         calTo.set(Calendar.SECOND, 59); calTo.set(Calendar.MILLISECOND, 999);
-        Timestamp tsTo = new Timestamp(calTo.getTimeInMillis());
 
-        // Gọi BUS (Bạn cần đảm bảo BookingBUS đã có hàm getRevenueStats)
-        List<BookingDTO> list = bus.getRevenueStats(tsFrom, tsTo);
+        // 4. GỌI BUS ĐỂ LẤY DỮ LIỆU
+        List<BookingDTO> list = bus.getRevenueByDate(new Timestamp(calFrom.getTimeInMillis()), new Timestamp(calTo.getTimeInMillis()));
 
+        // 5. Đổ dữ liệu lên bảng
         revenueDialog.setTableData(list);
     }
 
-    // --- CÁC HÀM HỖ TRỢ CŨ (GIỮ NGUYÊN) ---
-
-    private void setSelectedComboBoxItem(JComboBox cbo, String idValue) {
-        for (int i = 0; i < cbo.getItemCount(); i++) {
-            String item = cbo.getItemAt(i).toString();
-            if (item.startsWith(idValue + " -") || item.equals(idValue)) {
-                cbo.setSelectedIndex(i);
-                return;
-            }
-        }
-    }
-
+    // --- 4. LẤY DỮ LIỆU TỪ FORM ---
     private BookingDTO getBookingFromForm() {
         try {
             BookingDTO dto = new BookingDTO();
+            if (view.getCboUserID().getSelectedItem() != null) dto.setCustomerId(Integer.parseInt(view.getCboUserID().getSelectedItem().toString().split(" - ")[0]));
+            if (view.getCboPetID().getSelectedItem() != null) dto.setPetId(Integer.parseInt(view.getCboPetID().getSelectedItem().toString().split(" - ")[0]));
+            if (view.getCboCageID().getSelectedItem() != null) dto.setCageId(Integer.parseInt(view.getCboCageID().getSelectedItem().toString().split(" - ")[0]));
+            if (view.getPlnCheckinDate().getDate() == null) throw new Exception("Chưa chọn ngày Check-in");
+            dto.setCheckInDate(new Timestamp(view.getPlnCheckinDate().getDate().getTime()));
 
-            if (view.getCboUserID().getSelectedItem() != null) {
-                String s = view.getCboUserID().getSelectedItem().toString();
-                dto.setCustomerId(Integer.parseInt(s.split(" - ")[0]));
-            }
-            if (view.getCboPetID().getSelectedItem() != null) {
-                String s = view.getCboPetID().getSelectedItem().toString();
-                dto.setPetId(Integer.parseInt(s.split(" - ")[0]));
-            }
-            if (view.getCboCageID().getSelectedItem() != null) {
-                String s = view.getCboCageID().getSelectedItem().toString();
-                dto.setCageId(Integer.parseInt(s.split(" - ")[0]));
-            }
-
-            dto.setCheckInDate(Timestamp.valueOf(view.getTxtCheckinDate().getText()));
-            if (!view.getTxtCheckOutDate().getText().isEmpty()) {
-                dto.setCheckOutDate(Timestamp.valueOf(view.getTxtCheckOutDate().getText()));
+            if (view.getPlnCheckOutDate().getDate() != null) {
+                dto.setCheckOutDate(new Timestamp(view.getPlnCheckOutDate().getDate().getTime()));
             }
 
             dto.setStatus(view.getCboStatus().getSelectedItem().toString());
-
-            //Lấy tổng tiền
-            dto.setTotalPrice(Double.parseDouble(view.getTxtTotalPrice().getText()));
-
-            //Lấy trạng thái thanh toán từ ComboBox
             dto.setPaymentStatus(view.getCboPaymentStatus().getSelectedItem().toString());
+            String price = view.getTxtTotalPrice().getText().isEmpty() ? "0" : view.getTxtTotalPrice().getText().replace(",", "");
+            dto.setTotalPrice(Double.parseDouble(price));
 
             return dto;
         } catch (Exception ex) {
@@ -333,35 +267,31 @@ public class BookingController {
         }
     }
 
+    // --- 5. TÍNH TOÁN TIỀN ---
     private void calculateTotalPrice() {
         try {
-            String inStr = view.getTxtCheckinDate().getText();
-            String outStr = view.getTxtCheckOutDate().getText();
+            Date inDate = view.getPlnCheckinDate().getDate();
+            Date outDate = view.getPlnCheckOutDate().getDate();
 
-            if (inStr.isEmpty() || outStr.isEmpty()) return;
-            if (view.getCboCageID().getSelectedItem() == null) return;
+            if (inDate == null || outDate == null || view.getCboCageID().getSelectedItem() == null) return;
 
-            String cageString = view.getCboCageID().getSelectedItem().toString();
-            int cageId = Integer.parseInt(cageString.split(" - ")[0]);
-
+            int cageId = Integer.parseInt(view.getCboCageID().getSelectedItem().toString().split(" - ")[0]);
             CageDTO cage = cageBUS.getCageById(cageId);
-            if (cage == null) return;
+            if (cage != null) {
+                long diff = outDate.getTime() - inDate.getTime();
+                long days = diff / (1000 * 60 * 60 * 24);
+                if (days <= 0) days = 0;
+                view.getTxtTotalPrice().setText(String.valueOf(days * cage.getPricePerDay()));
+            }
+        } catch (Exception e) {}
+    }
 
-            double pricePerDay = cage.getPricePerDay();
-
-            Timestamp inDate = Timestamp.valueOf(inStr);
-            Timestamp outDate = Timestamp.valueOf(outStr);
-
-            long diffTime = outDate.getTime() - inDate.getTime();
-            long days = diffTime / (1000 * 60 * 60 * 24);
-
-            if (days <= 0) days = 0;
-
-            double total = days * pricePerDay;
-
-            view.getTxtTotalPrice().setText(String.valueOf(total));
-
-        } catch (Exception e) {
+    private void setSelectedComboBoxItem(JComboBox cbo, String idValue) {
+        for (int i = 0; i < cbo.getItemCount(); i++) {
+            if (cbo.getItemAt(i).toString().startsWith(idValue + " -") || cbo.getItemAt(i).toString().equals(idValue)) {
+                cbo.setSelectedIndex(i);
+                return;
+            }
         }
     }
 }

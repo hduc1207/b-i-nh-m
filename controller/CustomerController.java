@@ -61,15 +61,15 @@ public class CustomerController {
                     Object phoneObj = tableModel.getValueAt(row, 2);
                     view.getTxtPhoneNumber().setText(phoneObj != null ? phoneObj.toString() : "");
 
-                    // 4. Lấy Email (Thường hay bị Null)
+                    // 4. Lấy Email
                     Object emailObj = tableModel.getValueAt(row, 3);
                     view.getTxtEmail().setText(emailObj != null ? emailObj.toString() : "");
 
-                    // 5. Lấy Địa chỉ (Thường hay bị Null)
+                    // 5. Lấy Địa chỉ
                     Object addressObj = tableModel.getValueAt(row, 4);
                     view.getTxtAddress().setText(addressObj != null ? addressObj.toString() : "");
 
-                    // 6. Lấy Ghi chú (Nếu có)
+                    // 6. Lấy Ghi chú
                     Object noteObj = tableModel.getValueAt(row, 5);
                     view.getTxtNote().setText(noteObj != null ? noteObj.toString() : "");
                 }

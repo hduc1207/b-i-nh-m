@@ -82,4 +82,7 @@ public class BookingBUS {
     public List<BookingDTO> getRevenueStats(java.sql.Timestamp from, java.sql.Timestamp to) {
         return bookingDAO.getRevenueByDate(from, to);
     }
+    public List<BookingDTO> getRevenueByDate(java.sql.Timestamp from, java.sql.Timestamp to) {
+        return bookingDAO.getRevenueByDate(from, to);
+    }
 }
