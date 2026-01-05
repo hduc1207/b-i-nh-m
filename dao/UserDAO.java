@@ -126,7 +126,7 @@ public class UserDAO {
         return list;
     }
 
-    // 6. Đăng nhập (RẤT QUAN TRỌNG)
+    // 6. Đăng nhập
     public UserDTO login(String username, String passwordHash) {
         String sql = """
                 SELECT * FROM Users

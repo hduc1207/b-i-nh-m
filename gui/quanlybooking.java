@@ -26,6 +26,10 @@ public class quanlybooking extends javax.swing.JFrame {
         return btnServiceAdd;
     }
 
+    public JButton getBtnThongKe() {
+        return btnThongKe;
+    }
+
     private JButton btnEdit;
     private JTable table1;
     private JButton btnMenuAccount;
@@ -33,6 +37,7 @@ public class quanlybooking extends javax.swing.JFrame {
     private JPanel MainPanel;
     private JButton btnMenuCustomer;
     private JButton btnServiceAdd;
+    private JButton btnThongKe;
 
     public JButton getBtnMenuPet() {
         return btnMenuPet;

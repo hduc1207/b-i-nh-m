@@ -100,7 +100,7 @@ public class CageDAO {
         return false;
     }
 
-    // 6. Lấy chuồng theo ID (Hỗ trợ hiển thị khi sửa)
+    // 6. Lấy chuồng theo ID
     public CageDTO getCageById(int id) {
         String sql = "SELECT * FROM Cages WHERE CageId=?";
         try (Connection conn = DBConnection.getConnection();
@@ -116,8 +116,6 @@ public class CageDAO {
         }
         return null;
     }
-
-    // Hàm phụ trợ mapping để code gọn hơn
     private CageDTO mapResultSetToCage(ResultSet rs) throws Exception {
         CageDTO c = new CageDTO();
         c.setCageId(rs.getInt("CageId"));

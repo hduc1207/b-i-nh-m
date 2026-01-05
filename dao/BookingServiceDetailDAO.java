@@ -63,7 +63,7 @@ public class BookingServiceDetailDAO {
         return false;
     }
 
-    // 3. Cập nhật số lượng dịch vụ (hay dùng)
+    // 3. Cập nhật số lượng dịch vụ
     public boolean updateQuantity(int detailId, int quantity) {
         String sql = "UPDATE BookingServices SET Quantity = ? WHERE DetailID = ?";
 
@@ -97,7 +97,7 @@ public class BookingServiceDetailDAO {
         return false;
     }
 
-    // 5. Xóa toàn bộ dịch vụ của 1 Booking (ít dùng vì đã có ON DELETE CASCADE)
+    // 5. Xóa toàn bộ dịch vụ của 1 Booking
     public boolean deleteByBookingId(int bookingId) {
         String sql = "DELETE FROM BookingServices WHERE BookingID = ?";
 

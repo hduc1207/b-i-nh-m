@@ -10,13 +10,18 @@ import com.pethotel.dto.CageDTO;
 import com.pethotel.dto.BookingDTO;
 import com.pethotel.gui.ServiceDialog;
 import com.pethotel.gui.quanlybooking;
+import com.pethotel.gui.RevenueDialog; // Import Dialog Thống kê
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.event.ActionEvent;      // Đã thêm import
+import java.awt.event.ActionListener;   // Đã thêm import
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class BookingController {
@@ -26,6 +31,9 @@ public class BookingController {
     private CustomerBUS customerBUS;
     private PetBUS petBUS;
     private CageBUS cageBUS;
+
+    // Khai báo Dialog Thống kê mới
+    private RevenueDialog revenueDialog;
 
     public BookingController(quanlybooking view) {
         this.view = view;
@@ -52,9 +60,9 @@ public class BookingController {
         String[] statuses = {"Pending", "Confirmed", "Checked-in", "Checked-out", "Cancelled"};
         for (String s : statuses) view.getCboStatus().addItem(s);
 
-        //Load Trạng thái Thanh toán (Kết nối với GUI đã sửa)
+        //Load Trạng thái Thanh toán
         view.getCboPaymentStatus().removeAllItems();
-        String[] payments = {"Pending", "Paid", "Refunded"}; // Chưa trả, Đã trả, Hoàn tiền
+        String[] payments = {"Pending", "Paid", "Refunded"};
         for (String p : payments) view.getCboPaymentStatus().addItem(p);
 
         // 2. Load Customer
@@ -101,7 +109,7 @@ public class BookingController {
     }
 
     private void initEventHandlers() {
-        // --- CÁC NÚT CRUD ---
+        // --- CÁC NÚT CRUD CŨ (GIỮ NGUYÊN) ---
         view.getBtnAdd().addActionListener(e -> {
             BookingDTO dto = getBookingFromForm();
             if (dto != null) {
@@ -154,7 +162,6 @@ public class BookingController {
                     view.getCboStatus().setSelectedItem(tableModel.getValueAt(row, 6).toString());
                     view.getTxtTotalPrice().setText(tableModel.getValueAt(row, 7).toString());
 
-                    //Chọn đúng Payment Status trên ComboBox
                     if (tableModel.getValueAt(row, 8) != null) {
                         view.getCboPaymentStatus().setSelectedItem(tableModel.getValueAt(row, 8).toString());
                     }
@@ -190,35 +197,94 @@ public class BookingController {
                 view.getBtnMenuAccount(),
                 view.getMainPanel()
         );
+
         // Xử lý khi bấm nút "Chọn dịch vụ"
         view.getBtnServiceAdd().addActionListener(e -> {
             int row = view.getTable1().getSelectedRow();
-
-            // Kiểm tra xem đã chọn dòng nào chưa
             if (row == -1) {
                 JOptionPane.showMessageDialog(view.getMainPanel(), "Vui lòng chọn đơn đặt phòng trước!");
                 return;
             }
-
-            // Lấy ID của Booking đang chọn
             int bookingId = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
             ServiceDialog dialog = new ServiceDialog(view, bookingId, () -> {
-
-                // --- ĐÂY LÀ HÀM SẼ CHẠY KHI DIALOG BÁO CÓ THAY ĐỔI ---
-
-                // 1. Load lại bảng Booking chính
                 loadDataToTable();
-
-                // 2. Chọn lại đúng cái dòng nãy đang chọn
                 view.getTable1().setRowSelectionInterval(row, row);
-
-                // 3. Cập nhật ngay lập tức con số ở ô tổng tiền
                 view.getTxtTotalPrice().setText(tableModel.getValueAt(row, 7).toString());
             });
-
-            dialog.setVisible(true); // Hiện cửa sổ lên
+            dialog.setVisible(true);
         });
+
+        // ======================================================
+        // === MỚI: SỰ KIỆN NÚT btnStat (THỐNG KÊ DOANH THU) ===
+        // ======================================================
+        // Kiểm tra xem nút có tồn tại không (để tránh lỗi nếu chưa tạo bên View)
+        // Bạn cần đảm bảo đã tạo getter getBtnStat() bên quanlybooking.java
+        try {
+            if (view.getBtnThongKe() != null) {
+                view.getBtnThongKe().addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        showRevenueDialog();
+                    }
+                });
+            }
+        } catch (Exception ex) {
+            System.err.println("Chưa tạo nút btnStat hoặc chưa có getter getBtnStat() bên View: " + ex.getMessage());
+        }
     }
+
+    // ======================================================
+    // === CÁC HÀM MỚI CHO THỐNG KÊ (Copy vào cuối Class) ===
+    // ======================================================
+
+    private void showRevenueDialog() {
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(view.getMainPanel());
+        revenueDialog = new RevenueDialog(parent);
+
+        // Gắn sự kiện cho nút "Thống Kê" BÊN TRONG Dialog
+        revenueDialog.addBtnThongKeListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleRevenueLogic();
+            }
+        });
+
+        revenueDialog.setVisible(true);
+    }
+
+    private void handleRevenueLogic() {
+        Date uFrom = revenueDialog.getFromDate();
+        Date uTo = revenueDialog.getToDate();
+
+        if (uFrom == null || uTo == null) {
+            revenueDialog.showMessage("Vui lòng chọn đầy đủ ngày tháng!");
+            return;
+        }
+        if (uFrom.after(uTo)) {
+            revenueDialog.showMessage("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
+            return;
+        }
+
+        // Chuyển đổi Date -> Timestamp (00:00:00 đến 23:59:59)
+        Calendar calFrom = Calendar.getInstance();
+        calFrom.setTime(uFrom);
+        calFrom.set(Calendar.HOUR_OF_DAY, 0); calFrom.set(Calendar.MINUTE, 0);
+        calFrom.set(Calendar.SECOND, 0); calFrom.set(Calendar.MILLISECOND, 0);
+        Timestamp tsFrom = new Timestamp(calFrom.getTimeInMillis());
+
+        Calendar calTo = Calendar.getInstance();
+        calTo.setTime(uTo);
+        calTo.set(Calendar.HOUR_OF_DAY, 23); calTo.set(Calendar.MINUTE, 59);
+        calTo.set(Calendar.SECOND, 59); calTo.set(Calendar.MILLISECOND, 999);
+        Timestamp tsTo = new Timestamp(calTo.getTimeInMillis());
+
+        // Gọi BUS (Bạn cần đảm bảo BookingBUS đã có hàm getRevenueStats)
+        List<BookingDTO> list = bus.getRevenueStats(tsFrom, tsTo);
+
+        revenueDialog.setTableData(list);
+    }
+
+    // --- CÁC HÀM HỖ TRỢ CŨ (GIỮ NGUYÊN) ---
 
     private void setSelectedComboBoxItem(JComboBox cbo, String idValue) {
         for (int i = 0; i < cbo.getItemCount(); i++) {
